@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { generateRoadmap } from './services/geminiService';
-import { getSavedRoadmaps, saveRoadmapToStorage, deleteRoadmapFromStorage, isRoadmapSaved } from './services/storageService';
+import { getSavedRoadmaps, saveRoadmapToStorage, deleteRoadmapFromStorage } from './services/storageService';
 import { downloadMarkdown, downloadPDF } from './services/exportService';
 import { RoadmapResponse, SavedRoadmap } from './types';
 import StepCard from './components/StepCard';
@@ -17,10 +17,12 @@ const App: React.FC = () => {
   const [roadmap, setRoadmap] = useState<RoadmapResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   
-  // State for persistence, views, and theme
+  // Data State
   const [view, setView] = useState<ViewState>('home');
   const [savedRoadmaps, setSavedRoadmaps] = useState<SavedRoadmap[]>([]);
   const [isSaved, setIsSaved] = useState(false);
+
+  // Theme State
   const [theme, setTheme] = useState<Theme>(() => {
     if (typeof window !== 'undefined') {
       return (localStorage.getItem('theme') as Theme) || 'light';
@@ -33,10 +35,22 @@ const App: React.FC = () => {
   const exportMenuRef = useRef<HTMLDivElement>(null);
   const roadmapRef = useRef<HTMLDivElement>(null);
 
+  // Initialize Data
   useEffect(() => {
-    // Load saved roadmaps on mount
-    setSavedRoadmaps(getSavedRoadmaps());
+    fetchSavedRoadmaps();
+  }, []);
 
+  // Fetch saved roadmaps from storage
+  const fetchSavedRoadmaps = async () => {
+    try {
+      const data = await getSavedRoadmaps();
+      setSavedRoadmaps(data);
+    } catch (err) {
+      console.error("Failed to load roadmaps", err);
+    }
+  };
+
+  useEffect(() => {
     // Click outside handler for export menu
     const handleClickOutside = (event: MouseEvent) => {
       if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
@@ -59,8 +73,10 @@ const App: React.FC = () => {
 
   useEffect(() => {
     // Check if current roadmap is saved
-    if (roadmap) {
-      setIsSaved(isRoadmapSaved(roadmap.field));
+    if (roadmap && savedRoadmaps.length > 0) {
+      // Simple check based on field name or exact ID match if we had one on the live object
+      const exists = savedRoadmaps.some(r => r.field.toLowerCase() === roadmap.field.toLowerCase());
+      setIsSaved(exists);
     } else {
       setIsSaved(false);
     }
@@ -77,7 +93,7 @@ const App: React.FC = () => {
     setLoading(true);
     setError(null);
     setRoadmap(null);
-    setView('home'); // Ensure we are on home view
+    setView('home');
 
     try {
       const data = await generateRoadmap(query);
@@ -96,17 +112,35 @@ const App: React.FC = () => {
     setView('home');
   };
 
-  const handleSaveRoadmap = () => {
+  const handleSaveRoadmap = async () => {
     if (!roadmap) return;
-    const newSaved = saveRoadmapToStorage(roadmap);
-    setSavedRoadmaps(prev => [newSaved, ...prev.filter(r => r.field !== newSaved.field)]); // Update state, avoiding stale dupes if re-saving
-    setIsSaved(true);
+
+    try {
+      const newSaved = await saveRoadmapToStorage(roadmap);
+      if (newSaved) {
+        setSavedRoadmaps(prev => [newSaved, ...prev]);
+        setIsSaved(true);
+      }
+    } catch (err) {
+      setIsSaved(false);
+      alert('Failed to save roadmap.');
+    }
   };
 
-  const handleDeleteRoadmap = (id: string, e: React.MouseEvent) => {
+  const handleDeleteRoadmap = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const updated = deleteRoadmapFromStorage(id);
-    setSavedRoadmaps(updated);
+    if (window.confirm('Are you sure you want to delete this roadmap?')) {
+      try {
+        await deleteRoadmapFromStorage(id);
+        setSavedRoadmaps(prev => prev.filter(r => r.id !== id));
+      } catch (err) {
+        alert("Failed to delete roadmap");
+      }
+    }
+  };
+
+  const handleViewSaved = () => {
+    setView(view === 'saved' ? 'home' : 'saved');
   };
 
   const handleSelectSaved = (saved: SavedRoadmap) => {
@@ -116,6 +150,7 @@ const App: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'auto' });
   };
 
+  // Export handlers
   const handleExportMarkdown = () => {
     if (roadmap) {
       downloadMarkdown(roadmap);
@@ -126,7 +161,6 @@ const App: React.FC = () => {
   const handleExportPDF = () => {
     if (roadmap && roadmapRef.current) {
       setShowExportMenu(false);
-      // Wait for menu to close before capturing
       setTimeout(() => {
         downloadPDF(roadmapRef.current!, roadmap);
       }, 100);
@@ -140,6 +174,7 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col transition-colors duration-300">
+      
       {/* Header */}
       <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50 no-print transition-colors duration-300">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
@@ -156,13 +191,12 @@ const App: React.FC = () => {
             <button
               onClick={toggleTheme}
               className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-              title={theme === 'light' ? "Switch to Dark Mode" : "Switch to Light Mode"}
             >
               {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
             </button>
 
             <button 
-              onClick={() => setView(view === 'saved' ? 'home' : 'saved')}
+              onClick={handleViewSaved}
               className={`text-sm font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
                 view === 'saved' 
                   ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' 
@@ -201,7 +235,7 @@ const App: React.FC = () => {
           />
         ) : (
           <>
-            {/* Search Section - Centered when empty, Top when results exist */}
+            {/* Search Section */}
             <div className={`transition-all duration-500 ease-in-out flex flex-col items-center no-print ${roadmap ? 'mb-12' : 'min-h-[40vh] justify-center'}`}>
               
               {!roadmap && !loading && (
@@ -245,7 +279,6 @@ const App: React.FC = () => {
                 </div>
               </form>
 
-              {/* Loading State Helper Text */}
               {loading && (
                 <div className="mt-8 text-center animate-pulse">
                   <p className="text-slate-500 dark:text-slate-400 font-medium">Constructing your learning path...</p>
@@ -260,7 +293,6 @@ const App: React.FC = () => {
               )}
             </div>
 
-            {/* Results Section */}
             {!loading && !roadmap && !error && <EmptyState />}
 
             {!loading && roadmap && (
@@ -323,7 +355,6 @@ const App: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Printable Content Container */}
                 <div ref={roadmapRef} className="print:w-full">
                   <div className="text-center mb-10 max-w-3xl mx-auto print:mb-8 print:text-left">
                     <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-4 capitalize transition-colors">

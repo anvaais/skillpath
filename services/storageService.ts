@@ -1,41 +1,40 @@
 import { RoadmapResponse, SavedRoadmap } from "../types";
 
-const STORAGE_KEY = "skillpath_saved_roadmaps";
+const STORAGE_KEY = 'skillpath_saved_roadmaps';
 
-export const getSavedRoadmaps = (): SavedRoadmap[] => {
-  if (typeof window === "undefined") return [];
-  const data = localStorage.getItem(STORAGE_KEY);
-  return data ? JSON.parse(data) : [];
-};
-
-export const saveRoadmapToStorage = (roadmap: RoadmapResponse): SavedRoadmap => {
-  const saved = getSavedRoadmaps();
-  // Check if a roadmap with the same field already exists to avoid duplicates
-  const existing = saved.find(r => r.field.toLowerCase() === roadmap.field.toLowerCase());
-  
-  if (existing) {
-    return existing;
+// Fetch roadmaps from LocalStorage
+export const getSavedRoadmaps = async (): Promise<SavedRoadmap[]> => {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (!stored) return [];
+  try {
+    const parsed = JSON.parse(stored);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    console.error("Failed to parse saved roadmaps", e);
+    return [];
   }
+};
 
-  const newEntry: SavedRoadmap = {
-    ...roadmap,
-    id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
-    createdAt: Date.now(),
-  };
+// Save a roadmap to LocalStorage
+export const saveRoadmapToStorage = async (roadmap: RoadmapResponse, userId?: string): Promise<SavedRoadmap | null> => {
+  const savedRoadmaps = await getSavedRoadmaps();
   
-  const updated = [newEntry, ...saved];
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-  return newEntry;
+  // Create new saved object
+  const newRoadmap: SavedRoadmap = {
+    ...roadmap,
+    id: Date.now().toString(), // Simple ID generation
+    createdAt: Date.now()
+  };
+
+  const updatedList = [newRoadmap, ...savedRoadmaps];
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedList));
+  
+  return newRoadmap;
 };
 
-export const deleteRoadmapFromStorage = (id: string): SavedRoadmap[] => {
-  const saved = getSavedRoadmaps();
-  const updated = saved.filter((r) => r.id !== id);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-  return updated;
-};
-
-export const isRoadmapSaved = (field: string): boolean => {
-    const saved = getSavedRoadmaps();
-    return saved.some(r => r.field.toLowerCase() === field.toLowerCase());
+// Delete a roadmap from LocalStorage
+export const deleteRoadmapFromStorage = async (id: string): Promise<void> => {
+  const savedRoadmaps = await getSavedRoadmaps();
+  const updatedList = savedRoadmaps.filter(r => r.id !== id);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedList));
 };
