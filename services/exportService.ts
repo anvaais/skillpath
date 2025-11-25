@@ -1,4 +1,6 @@
 import { RoadmapResponse } from "../types";
+// @ts-ignore
+import html2pdf from 'html2pdf.js';
 
 export const generateMarkdown = (roadmap: RoadmapResponse): string => {
   let md = `# Learning Path: ${roadmap.field}\n\n`;
@@ -38,4 +40,19 @@ export const downloadMarkdown = (roadmap: RoadmapResponse) => {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+};
+
+export const downloadPDF = (element: HTMLElement, roadmap: RoadmapResponse) => {
+  const opt = {
+    margin: [10, 10, 10, 10],
+    filename: `${roadmap.field.toLowerCase().replace(/\s+/g, '-')}-roadmap.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true, letterRendering: true, scrollY: 0 },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    pagebreak: { mode: ['css', 'legacy'] }
+  };
+
+  // We clone the element to ensure we can manipulate it if needed (e.g. forcing light mode)
+  // But for now, direct export is fine.
+  html2pdf().set(opt).from(element).save();
 };

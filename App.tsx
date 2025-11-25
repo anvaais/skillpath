@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { generateRoadmap } from './services/geminiService';
 import { getSavedRoadmaps, saveRoadmapToStorage, deleteRoadmapFromStorage, isRoadmapSaved } from './services/storageService';
-import { downloadMarkdown } from './services/exportService';
+import { downloadMarkdown, downloadPDF } from './services/exportService';
 import { RoadmapResponse, SavedRoadmap } from './types';
 import StepCard from './components/StepCard';
 import EmptyState from './components/EmptyState';
@@ -31,6 +31,7 @@ const App: React.FC = () => {
   // Export dropdown state
   const [showExportMenu, setShowExportMenu] = useState(false);
   const exportMenuRef = useRef<HTMLDivElement>(null);
+  const roadmapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Load saved roadmaps on mount
@@ -119,6 +120,16 @@ const App: React.FC = () => {
     if (roadmap) {
       downloadMarkdown(roadmap);
       setShowExportMenu(false);
+    }
+  };
+
+  const handleExportPDF = () => {
+    if (roadmap && roadmapRef.current) {
+      setShowExportMenu(false);
+      // Wait for menu to close before capturing
+      setTimeout(() => {
+        downloadPDF(roadmapRef.current!, roadmap);
+      }, 100);
     }
   };
 
@@ -254,37 +265,44 @@ const App: React.FC = () => {
 
             {!loading && roadmap && (
               <div className="animate-fade-in-up">
-                <div className="text-center mb-16 max-w-3xl mx-auto print:mb-8 print:text-left">
-                  <div className="flex items-center justify-center gap-3 mb-2 no-print">
-                    <span className="text-blue-600 dark:text-blue-400 font-semibold tracking-wide text-sm uppercase">Roadmap Generated</span>
-                    
-                    {/* Action Buttons Group */}
-                    <div className="flex items-center gap-2">
+                
+                {/* Controls Bar */}
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8 max-w-3xl mx-auto px-1 no-print">
+                   <span className="text-blue-600 dark:text-blue-400 font-semibold tracking-wide text-sm uppercase">Roadmap Generated</span>
+                   
+                   <div className="flex items-center gap-2">
                       <button 
                         onClick={handleSaveRoadmap}
                         disabled={isSaved}
-                        className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                           isSaved 
                             ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 cursor-default' 
-                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                            : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 shadow-sm'
                         }`}
                       >
-                        {isSaved ? <Check size={14} /> : <Bookmark size={14} />}
-                        {isSaved ? 'Saved' : 'Save'}
+                        {isSaved ? <Check size={16} /> : <Bookmark size={16} />}
+                        {isSaved ? 'Saved' : 'Save Path'}
                       </button>
 
                       {/* Export Dropdown */}
                       <div className="relative" ref={exportMenuRef}>
                         <button
                           onClick={() => setShowExportMenu(!showExportMenu)}
-                          className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
+                          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all border border-slate-200 dark:border-slate-700 shadow-sm"
                         >
-                          <Download size={14} />
+                          <Download size={16} />
                           Export
                         </button>
 
                         {showExportMenu && (
-                          <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 z-50 overflow-hidden">
+                          <div className="absolute right-0 mt-2 w-52 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 z-50 overflow-hidden">
+                            <button 
+                              onClick={handleExportPDF}
+                              className="w-full text-left px-4 py-3 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2 border-b border-slate-100 dark:border-slate-700 transition-colors"
+                            >
+                              <FileText size={16} className="text-red-500" />
+                              Download PDF
+                            </button>
                             <button 
                               onClick={handleExportMarkdown}
                               className="w-full text-left px-4 py-3 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2 border-b border-slate-100 dark:border-slate-700 transition-colors"
@@ -297,30 +315,35 @@ const App: React.FC = () => {
                               className="w-full text-left px-4 py-3 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors"
                             >
                               <Printer size={16} className="text-slate-500 dark:text-slate-400" />
-                              Export as PDF
+                              Print View
                             </button>
                           </div>
                         )}
                       </div>
                     </div>
-                  </div>
-                  <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mt-2 mb-4 capitalize transition-colors">
-                    {roadmap.field}
-                  </h2>
-                  <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-lg transition-colors">
-                    {roadmap.overview}
-                  </p>
                 </div>
 
-                <div className="relative">
-                  {roadmap.steps.map((step, index) => (
-                    <StepCard 
-                      key={step.id} 
-                      step={step} 
-                      index={index}
-                      isLast={index === roadmap.steps.length - 1}
-                    />
-                  ))}
+                {/* Printable Content Container */}
+                <div ref={roadmapRef} className="print:w-full">
+                  <div className="text-center mb-10 max-w-3xl mx-auto print:mb-8 print:text-left">
+                    <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-4 capitalize transition-colors">
+                      {roadmap.field}
+                    </h2>
+                    <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-lg transition-colors">
+                      {roadmap.overview}
+                    </p>
+                  </div>
+
+                  <div className="relative">
+                    {roadmap.steps.map((step, index) => (
+                      <StepCard 
+                        key={step.id} 
+                        step={step} 
+                        index={index}
+                        isLast={index === roadmap.steps.length - 1}
+                      />
+                    ))}
+                  </div>
                 </div>
 
                  <div className="mt-20 p-8 bg-slate-900 dark:bg-slate-800 rounded-2xl text-center text-slate-300 dark:text-slate-400 no-print transition-colors">
