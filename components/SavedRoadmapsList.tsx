@@ -1,6 +1,6 @@
 import React from 'react';
 import { SavedRoadmap } from '../types';
-import { Trash2, ArrowRight, Calendar, Map, Layers } from 'lucide-react';
+import { Trash2, ArrowRight, Calendar, Layers } from 'lucide-react';
 
 interface SavedRoadmapsListProps {
   roadmaps: SavedRoadmap[];

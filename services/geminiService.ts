@@ -1,6 +1,9 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { RoadmapResponse } from "../types";
 
+// Declare process to satisfy TypeScript since Vite injects this variable during build
+declare const process: any;
+
 const roadmapSchema: Schema = {
   type: Type.OBJECT,
   properties: {

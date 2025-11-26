@@ -1,5 +1,5 @@
 import React from 'react';
-import { Compass, Sparkles, Target, Layers } from 'lucide-react';
+import { Compass, Target, Layers } from 'lucide-react';
 
 const EmptyState: React.FC = () => {
   return (
