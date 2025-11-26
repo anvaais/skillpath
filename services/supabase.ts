@@ -1,3 +1,2 @@
-
-// Supabase integration removed.
+// Supabase client removed
 export const supabase = null;

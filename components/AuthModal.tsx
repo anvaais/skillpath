@@ -1,6 +1,6 @@
 import React from 'react';
 
-// Component removed as part of Supabase removal
+// This component is no longer used as we moved to local storage
 const AuthModal: React.FC<any> = () => {
   return null;
 };

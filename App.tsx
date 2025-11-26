@@ -74,7 +74,7 @@ const App: React.FC = () => {
   useEffect(() => {
     // Check if current roadmap is saved
     if (roadmap && savedRoadmaps.length > 0) {
-      // Simple check based on field name or exact ID match if we had one on the live object
+      // Simple check based on field name
       const exists = savedRoadmaps.some(r => r.field.toLowerCase() === roadmap.field.toLowerCase());
       setIsSaved(exists);
     } else {
