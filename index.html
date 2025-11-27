@@ -16,6 +16,12 @@
           }
         }
       }
+      // Enhanced safety polyfill for process to prevent crashes in libraries relying on Node.js globals
+      window.process = { 
+        env: { NODE_ENV: 'production' },
+        version: 'v16.0.0',
+        nextTick: function(cb) { setTimeout(cb, 0); }
+      };
     </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -76,14 +82,14 @@
 <script type="importmap">
 {
   "imports": {
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
     "react": "https://aistudiocdn.com/react@^19.2.0",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
-    "vite": "https://aistudiocdn.com/vite@^7.2.4",
-    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
     "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
-    "html2pdf.js": "https://aistudiocdn.com/html2pdf.js@^0.12.1"
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
+    "html2pdf.js": "https://aistudiocdn.com/html2pdf.js@^0.12.1",
+    "vite": "https://aistudiocdn.com/vite@^7.2.4",
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1"
   }
 }
 </script>

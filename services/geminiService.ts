@@ -48,8 +48,16 @@ const roadmapSchema: Schema = {
 };
 
 export const generateRoadmap = async (scope: string): Promise<RoadmapResponse> => {
-  // Initialize the client inside the function to ensure process.env.API_KEY is available
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  // Validate API Key presence
+  // Note: Vite replaces process.env.API_KEY with the actual string during build.
+  // If it's empty, it means the environment variable was missing at build time.
+  const apiKey = process.env.API_KEY;
+  
+  if (!apiKey || apiKey.length === 0 || apiKey === '""') {
+    throw new Error("API Key is missing. Please add API_KEY to your application settings (e.g., Vercel Environment Variables).");
+  }
+
+  const ai = new GoogleGenAI({ apiKey: apiKey });
 
   try {
     const prompt = `Create a comprehensive, step-by-step learning roadmap for: "${scope}". 
