@@ -98,8 +98,11 @@ const App: React.FC = () => {
     try {
       const data = await generateRoadmap(query);
       setRoadmap(data);
-    } catch (err) {
-      setError("Failed to generate roadmap. Please try again or check your connection.");
+    } catch (err: any) {
+      console.error("Roadmap generation error:", err);
+      // Display the actual error message to help user debug (e.g., "API Key missing")
+      const errorMessage = err instanceof Error ? err.message : "Failed to generate roadmap. Please check your connection.";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -287,8 +290,12 @@ const App: React.FC = () => {
               )}
 
               {error && (
-                 <div className="mt-6 p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg border border-red-100 dark:border-red-800 flex items-center gap-2">
-                   <span className="font-semibold">Error:</span> {error}
+                 <div className="mt-6 p-4 w-full max-w-2xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg border border-red-100 dark:border-red-800 flex items-start gap-3">
+                   <div className="mt-0.5">⚠️</div>
+                   <div>
+                     <span className="font-semibold block">Error</span>
+                     <span className="text-sm opacity-90">{error}</span>
+                   </div>
                  </div>
               )}
             </div>

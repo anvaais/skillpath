@@ -53,8 +53,15 @@ export const generateRoadmap = async (scope: string): Promise<RoadmapResponse> =
   // If it's empty, it means the environment variable was missing at build time.
   const apiKey = process.env.API_KEY;
   
+  // Debug log (check your browser console)
+  if (!apiKey || apiKey === '""') {
+    console.error("GeminiService: API Key is missing!");
+  } else {
+    console.log("GeminiService: API Key is present.");
+  }
+
   if (!apiKey || apiKey.length === 0 || apiKey === '""') {
-    throw new Error("API Key is missing. Please add API_KEY to your application settings (e.g., Vercel Environment Variables).");
+    throw new Error("API Key is missing. If you are on Vercel, please add 'API_KEY' in Settings > Environment Variables and REDEPLOY the project.");
   }
 
   const ai = new GoogleGenAI({ apiKey: apiKey });
